@@ -26,13 +26,13 @@ The input file format is a .list file containing boundaries (and optional space-
 
 ### Cluster Evaluation
 
-Python script name: ned_cov.py
+Python script name: clust_eval.py
 
 This script evaluates ASR clustering metrics namely: NED, coverage, and type scores.
 
 **Example Usage**
 
-    python3 ned_cov.py path/to/segment/files path/to/alignment/files --alignment_format=.TextGrid
+    python3 clust_eval.py path/to/segment/files path/to/alignment/files --alignment_format=.TextGrid
 
 with the same argument definitions as above.
 
