@@ -11,8 +11,9 @@ import argparse
 from pathlib import Path
 import textgrids
 from tqdm import tqdm
+import itertools
 
-def eval_segmentation(seg, ref, strict=True, tolerance=2, continuous=False, num_seg=None, num_ref=None, num_hit=None):
+def eval_segmentation(seg, ref, strict=True, tolerance=1, continuous=False, num_seg=None, num_ref=None, num_hit=None):
     """
     Calculate number of hits of the segmentation boundaries with the ground truth boundaries.
 
@@ -24,7 +25,7 @@ def eval_segmentation(seg, ref, strict=True, tolerance=2, continuous=False, num_
         The ground truth reference word boundary frames for all utterances in the sample.
     tolerance : int
         The number of offset frames that a segmentation hypothesis boundary can have with regards to a reference boundary and still be regarded as correct.
-        default: 1 (10ms or 20ms for MFCCs with a frame shift of 10ms or for speech models)
+        default: 1 (10ms for MFCCs with a frame shift of 10ms or or 20ms for self-supervised speech models)
     continuous : bool
         If True, return the number of segments, references, and hits instead of the evaluation metrics. This is to continue the evaluation over multiple samples.
         default: False
@@ -172,6 +173,71 @@ def get_rvalue(precision, recall):
     rvalue = 1 - (np.abs(r1) + np.abs(r2))/2
     return rvalue
 
+def get_word_token_boundaries(seg, ref, tolerance=1):
+    """
+    Calculate precision, recall, F-score for the word token boundaries.
+
+    Parameters
+    ----------
+    ref : list of vector of bool
+        The ground truth reference.
+    seg : list of vector of bool
+        The segmentation hypothesis.
+    tolerance : int
+        The number of slices with which a boundary might differ but still be
+        regarded as correct.
+        default: 1
+
+    Return
+    ------
+    output : (float, float, float)
+        Precision, recall, F-score.
+    """
+
+    n_tokens_ref = 0
+    n_tokens_seg = 0
+    n_tokens_correct = 0
+
+    assert len(seg) == len(ref)
+    
+    for i_utterance in range(len(seg)): # for each utterance
+        prediction = seg[i_utterance]
+        ground_truth = ref[i_utterance]
+
+        seg_intervals = [(a,b) for a,b in itertools.pairwise([0] + prediction)]
+        ref_intervals = [(a,b) for a,b in itertools.pairwise([0] + ground_truth)]
+
+        # Build list of ((word_start_lower, word_start_upper), (word_end_lower, word_end_upper))
+        word_bound_intervals = []
+        for word_start, word_end in ref_intervals:
+            word_bound_intervals.append((
+                (max(0, word_start - tolerance), word_start + tolerance),
+                (word_end - tolerance, word_end + tolerance)
+                ))
+        
+        n_tokens_ref += len(word_bound_intervals)
+        n_tokens_seg += len(seg_intervals)
+
+        # Score word token boundaries
+        for seg_start, seg_end in seg_intervals:
+            for i_gt_word, (word_start_interval, word_end_interval) in enumerate(word_bound_intervals):
+                word_start_lower, word_start_upper = word_start_interval
+                word_end_lower, word_end_upper = word_end_interval
+
+                if (word_start_lower <= seg_start <= word_start_upper and word_end_lower <= seg_end <= word_end_upper):
+                    n_tokens_correct += 1
+                    word_bound_intervals.pop(i_gt_word)  # can't re-use token
+                    break
+
+    precision = float(n_tokens_correct)/n_tokens_seg
+    recall = float(n_tokens_correct)/n_tokens_ref
+    if precision + recall != 0:
+        f = 2*precision*recall / (precision + recall)
+    else:
+        f = -np.inf
+
+    return precision, recall, f
+
 def get_frame_num(seconds, frames_per_ms=20):
         """
         Convert seconds to feature embedding frame number
@@ -217,13 +283,21 @@ if __name__ == "__main__":
         default=20,
         type=int,
     )
+    parser.add_argument(
+        "--tolerance",
+        help="the tolerance in number of frames.",
+        default=2,
+        type=int,
+    )
+    parser.add_argument(
+        "--strict",
+        help="optional variable to follow strict evaluation.",
+        default=True,
+        type=bool,
+    )
     args = parser.parse_args()
-    # python3 boundary_word.py /media/hdd/segments/eskmeans/tti/librispeech/dev-clean /media/hdd/data/librispeech_alignments/dev-clean
-    # python3 boundary_word.py /home/simon/git/cluster/segments /media/hdd/data/librispeech_alignments/dev-clean
 
-    # load the discovered fragments
     files_seg = args.disc_path.rglob("**/*" + ".list")
-    files_ref = args.gold_dir.rglob("**/*" + args.alignment_format)
     seg_list = []
     ref_list = []
     for file_seg in tqdm(files_seg):
@@ -234,6 +308,8 @@ if __name__ == "__main__":
                 if len(line.split(" ")) == 2: # end_time class
                     end_time, _ = line.split(" ")
                     boundaries.append(float(end_time))
+                else: # end_time
+                    boundaries.append(float(line))
         seg_list.append(list(get_frame_num(np.array(boundaries), frames_per_ms=args.frames_per_ms))) # convert to frames
 
         file_ref = list(args.gold_dir.rglob(f'**/{file_seg.stem}' + args.alignment_format))[0]
@@ -248,13 +324,17 @@ if __name__ == "__main__":
         ref_list.append(list(get_frame_num(np.array(references), frames_per_ms=args.frames_per_ms)))
 
     # evaluate the segmentation
-    num_seg, num_ref, num_hit = eval_segmentation(seg_list, ref_list)
+    num_seg, num_ref, num_hit = eval_segmentation(seg_list, ref_list, strict=args.strict, tolerance=args.tolerance)
     precision, recall, f1_score = get_p_r_f1(num_seg, num_ref, num_hit)
     os = get_os(precision, recall)
     rvalue = get_rvalue(precision, recall)
+    token_p, token_r, token_f1 = get_word_token_boundaries(seg_list, ref_list, tolerance=args.tolerance)
 
     print(f"Precision: {precision}")
     print(f"Recall: {recall}")
     print(f"F1-score: {f1_score}")
     print(f"Over-segmentation: {os}")
     print(f"R-value: {rvalue}")
+    print(f"Token Precision: {token_p}")
+    print(f"Token Recall: {token_r}")
+    print(f"Token F1-score: {token_f1}")

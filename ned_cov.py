@@ -168,9 +168,6 @@ if __name__ == "__main__":
         type=str,
     )
     args = parser.parse_args()
-    # python3 ned_cov.py /media/hdd/segments/eskmeans/tti/librispeech/dev-clean /media/hdd/data/librispeech_alignments/dev-clean
-    # python3 ned_cov.py /home/simon/git/cluster/segments /media/hdd/data/librispeech_alignments/dev-clean
-    # python3 ned_cov.py /media/hdd/segments/eskmeans/tti/buckeye/test /media/hdd/data/buckeye_alignments/test --alignment_format=.txt
 
     files = args.disc_path.rglob("**/*" + ".list")
     fragments = []
