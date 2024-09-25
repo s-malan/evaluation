@@ -37,3 +37,9 @@ This script evaluates ASR clustering metrics namely: NED, coverage, and type sco
 with the same argument definitions as above.
 
 The input file format is a .list file containing boundaries and a  space-separated class assignment value with each new pair of values on a new line.
+
+## Contributors
+
+Simon Malan
+[Benjamin van Niekerk](https://scholar.google.com/citations?user=zCokvy8AAAAJ&hl=en&oi=ao)
+[Herman Kamper](https://www.kamperh.com/)
