@@ -40,6 +40,6 @@ The input file format is a .list file containing boundaries and a  space-separat
 
 ## Contributors
 
-- Simon Malan
+- [Simon Malan](https://scholar.google.com/citations?user=rxKKwFAAAAAJ&hl=en)
 - [Benjamin van Niekerk](https://scholar.google.com/citations?user=zCokvy8AAAAJ&hl=en&oi=ao)
 - [Herman Kamper](https://www.kamperh.com/)
