@@ -277,6 +277,14 @@ if __name__ == "__main__":
         type=str,
     )
     parser.add_argument(
+        "--alignment_type",
+        metavar="--alignment-type",
+        help="type of alignment tier to use.",
+        default="words",
+        choices=["words", "syllables", "phones"],
+        type=str,
+    )
+    parser.add_argument(
         "--frames_per_ms",
         metavar="--frames-per-ms",
         help="number of ms in a frame for the encoding.",
@@ -286,7 +294,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--tolerance",
         help="the tolerance in number of frames.",
-        default=2,
+        default=1,
         type=int,
     )
     parser.add_argument(
@@ -314,7 +322,7 @@ if __name__ == "__main__":
 
         file_ref = list(args.gold_dir.rglob(f'**/{file_seg.stem}' + args.alignment_format))[0]
         if args.alignment_format == '.TextGrid':
-            for word in textgrids.TextGrid(file_ref)['words']:
+            for word in textgrids.TextGrid(file_ref)[args.alignment_type]:
                 references.append(float(word.xmax))
         elif args.alignment_format == '.txt':
             with open(file_ref, 'r') as f:
