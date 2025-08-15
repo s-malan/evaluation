@@ -1,6 +1,6 @@
-# ASR Evaluation
+# Word Discovery Evaluation
 
-This repository evaluates ASR metrics falling in the word segmentation and clustering categories. The metrics covered are: Boundary Precision, Boundary Recall, Boundary F1-Score, Token Precision, Token Recall, Token F1-Score, Over-Segmentation, R-Value, normalized edit distance (NED), coverage, and type scores. 
+This repository evaluates Word Discovery metrics falling in the word segmentation and clustering categories. The metrics covered are: Boundary Precision, Boundary Recall, Boundary F1-Score, Token Precision, Token Recall, Token F1-Score, Over-Segmentation, R-Value, normalized edit distance (NED), coverage, and type scores. 
 More information on these metrics can be found in ASR_metrics.md. Both scripts can be called as main methods, where segmentation and alignment files must be included, alternatively the word boundary script's functions can be called from within another scripts by supplying the functions with the correct variables (as noted in the function headers).
 
 ## Scripts
@@ -40,6 +40,6 @@ The input file format is a .list file containing boundaries and a  space-separat
 
 ## Contributors
 
-- Simon Malan
+- [Simon Malan](https://scholar.google.com/citations?user=rxKKwFAAAAAJ&hl=en)
 - [Benjamin van Niekerk](https://scholar.google.com/citations?user=zCokvy8AAAAJ&hl=en&oi=ao)
 - [Herman Kamper](https://www.kamperh.com/)
