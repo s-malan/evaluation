@@ -238,22 +238,24 @@ def get_word_token_boundaries(seg, ref, tolerance=1):
 
     return precision, recall, f
 
-def get_frame_num(seconds, frames_per_ms=20):
+def get_frame_num(seconds, ms_per_frame=20):
         """
         Convert seconds to feature embedding frame number
 
         Parameters
         ----------
         seconds : float or ndarray (float)
-            The number of seconds (of audio) to convert to frames
+            The number of seconds (of audio) to convert to frames.
+        ms_per_frame : int
+            The number of milliseconds per speech feature frame.
 
         Return
         ------
         output : int
-            The feature embedding frame number corresponding to the given number of seconds 
+            The feature frame number corresponding to the given number of seconds.
         """
 
-        return np.round(seconds / frames_per_ms * 1000).astype(np.int16) # seconds (= samples / sample_rate) / x ms per frame * 1000ms per second
+        return np.floor(np.round((seconds / ms_per_frame * 1000), 1) + 0.5).astype(np.int32)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=".")
@@ -318,7 +320,7 @@ if __name__ == "__main__":
                     boundaries.append(float(end_time))
                 else: # end_time
                     boundaries.append(float(line))
-        seg_list.append(list(get_frame_num(np.array(boundaries), frames_per_ms=args.frames_per_ms))) # convert to frames
+        seg_list.append(list(get_frame_num(np.array(boundaries), ms_per_frame=args.frames_per_ms)))
 
         file_ref = list(args.gold_dir.rglob(f'**/{file_seg.stem}' + args.alignment_format))[0]
         if args.alignment_format == '.TextGrid':
@@ -329,7 +331,7 @@ if __name__ == "__main__":
                 for line in f:
                     line = line.split()
                     references.append(float(line[1]))
-        ref_list.append(list(get_frame_num(np.array(references), frames_per_ms=args.frames_per_ms)))
+        ref_list.append(list(get_frame_num(np.array(references), ms_per_frame=args.frames_per_ms)))
 
     # evaluate the segmentation
     num_seg, num_ref, num_hit = eval_segmentation(seg_list, ref_list, strict=args.strict, tolerance=args.tolerance)
