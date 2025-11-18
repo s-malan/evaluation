@@ -387,9 +387,11 @@ if __name__ == "__main__":
             seg_utt = get_frame_num(
                 np.array(seg_utt), ms_per_frame=args.ms_per_frame
             ).tolist()
-            ref_utt = get_frame_num(
-                np.array(ref_utt), ms_per_frame=args.ms_per_frame
-            ).tolist()
+            tg = [textgrids.Interval(
+                text=interval.text,
+                xmin=get_frame_num(interval.xmin, ms_per_frame=args.ms_per_frame).item(),
+                xmax=get_frame_num(interval.xmax, ms_per_frame=args.ms_per_frame).item()
+            ) for interval in tg]
         
         if args.split_utterances:
             seg_utt, ref_utt = split_utterance(
@@ -399,7 +401,7 @@ if __name__ == "__main__":
             ref_list.extend(ref_utt)
         else:
             seg_list.append(seg_utt)
-            ref_list.append([float(interval.xmax) for interval in tg])
+            ref_list.append([interval.xmax for interval in tg])
 
     # -------------- Calculate boundary evaluation metrics --------------
 
