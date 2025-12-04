@@ -138,7 +138,7 @@ def eval_boundaries(
     """
     
     assert len(seg) == len(ref) # Check if the number of utterances in the hypothesis and reference are the same
-    for i_utterance in range(len(seg)): # for each utterance
+    for i_utterance in range(len(seg)):
         prediction = list(seg[i_utterance])
         ground_truth = list(ref[i_utterance])
 
@@ -148,8 +148,7 @@ def eval_boundaries(
             and abs(prediction[-1] - ground_truth[-1]) <= tolerance
         ): # if the last boundary is within the tolerance, delete it since it would have hit
             prediction = prediction[:-1]
-            if len(ground_truth) > 0: # Remove the last boundary of the reference if there is more than one boundary
-                ground_truth = ground_truth[:-1]
+            ground_truth = ground_truth[:-1]
         # this helps when the segmentation algo does not automatically predict a boundary at the end of the utterance
 
         n_seg += len(prediction)
