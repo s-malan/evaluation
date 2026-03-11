@@ -59,17 +59,17 @@ def get_p_r_f1(
     return precision, recall, f1_score
 
 def get_os(
-    precision: float, recall: float
+    n_seg: int, n_ref: int
 ) -> float:
     """
     Calculates over-segmentation: how many fewer/more boundaries are proposed compared to the ground-truth.
 
     Parameters
     ----------
-    precision : float
-        How often the segmentation correctly predicts the reference boundaries.
-    recall : float
-        How often the reference boundaries are contained in the segmentation.
+    n_seg : int
+        The number of segmentation boundaries.
+    n_ref : int
+        The number of reference boundaries.
 
     Return
     ------
@@ -77,38 +77,40 @@ def get_os(
         Over-segmentation
     """
 
-    if precision == 0:
+    if n_ref == 0:
         return -np.inf
     else:
-        return recall/precision - 1
+        return n_seg/n_ref - 1
     
 def get_rvalue(
-    precision: float, recall: float
+    os: float, recall: float
 ) -> Tuple[float, float]:
     """
     Calculates the R-value: how close the segmentation is to an ideal point of operation (100% Recall with 0% OS).
 
     Parameters
     ----------
-    precision : float
-        How often the segmentation correctly predicts the reference boundaries.
+    os : float
+        How many fewer/more boundaries are proposed compared to the ground-truth.
     recall : float
         How often the reference boundaries are contained in the segmentation.
 
     Return
     ------
-    output : float, float
-        R-Value, Over-segmentation
+    output : float
+        R-Value
     """
 
-    os = get_os(precision, recall)
     r1 = np.sqrt((1 - recall)**2 + os**2)
     r2 = (-os + recall - 1)/np.sqrt(2)
 
-    return 1 - (np.abs(r1) + np.abs(r2))/2, os
+    return 1 - (np.abs(r1) + np.abs(r2))/2
 
 def eval_boundaries(
-    seg: List[List[Union[int, float]]], ref: List[List[Union[int, float]]], tolerance: Union[int, float], strict: bool = True, n_seg: int = 0, n_ref: int = 0, n_hit: int = 0
+    seg: List[List[Union[int, float]]], 
+    ref: List[List[Union[int, float]]], 
+    tolerance: Union[int, float], strict: bool = True, 
+    n_seg: int = 0, n_ref: int = 0, n_hit: int = 0
 ) -> Tuple[int, int, int]:
     """
     Count number of seg-ref hits.
@@ -168,7 +170,10 @@ def eval_boundaries(
     return n_seg, n_ref, n_hit
 
 def eval_token_boundaries(
-    seg: List[List[Union[int, float]]], ref: List[List[Union[int, float]]], tolerance: Union[int, float], strict: bool = True, n_tokens_seg: int = 0, n_tokens_ref: int = 0, n_tokens_hit: int = 0
+    seg: List[List[Union[int, float]]], 
+    ref: List[List[Union[int, float]]], 
+    tolerance: Union[int, float], strict: bool = True, 
+    n_tokens_seg: int = 0, n_tokens_ref: int = 0, n_tokens_hit: int = 0
 ) -> Tuple[int, int, int]:
     """
     Count number of token (onset-offset) seg-ref hits.
@@ -266,7 +271,10 @@ def split_utterance(
 
     seg_out = []
     for ref_utt in ref_out:
-        ref_utt_onset = ref_utt[0].xmin + tolerance
+        if ref_utt[0].xmin == 0.0: # If no silence at start of utterance
+            ref_utt_onset = ref_utt[0].xmin - 1e-8
+        else:
+            ref_utt_onset = ref_utt[0].xmin + tolerance
         ref_utt_offset = ref_utt[-1].xmax - tolerance
         seg_out.append([
             s for s in seg if ref_utt_onset < s < ref_utt_offset
@@ -380,7 +388,7 @@ if __name__ == "__main__":
             with open(file_ref, 'r') as f:
                 for line in f:
                     line = line.split()
-                    tg.append(textgrids.Interval(float(line[0]), float(line[1]), line[2]))
+                    tg.append(textgrids.Interval(line[2], float(line[0]), float(line[1])))
 
         if frames:
             seg_utt = get_frame_num(
@@ -407,7 +415,8 @@ if __name__ == "__main__":
     n_seg, n_ref, n_hit = eval_boundaries(seg_list, ref_list, tolerance=args.tolerance, strict=args.strict)
     precision, recall, f1_score = get_p_r_f1(n_seg, n_ref, n_hit)
 
-    rvalue, os = get_rvalue(precision, recall)
+    os = get_os(n_seg, n_ref)
+    rvalue = get_rvalue(os, recall)
 
     n_token_seg, n_token_ref, n_token_hit = eval_token_boundaries(seg_list, ref_list, tolerance=args.tolerance)
     token_p, token_r, token_f1 = get_p_r_f1(n_token_seg, n_token_ref, n_token_hit)
